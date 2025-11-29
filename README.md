@@ -1,6 +1,9 @@
 # ASTA_agentclient
 前端。
 
+值得注意的是，目前services文件夹内的mockGameEngine.ts仅仅是在自行生成数据以供前端测试，尚不具备与后端通信的能力，需要补充一个apiService.ts文件以接收后端返回的数据。
+
+
 请按以下步骤运行：
 
 
