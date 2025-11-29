@@ -20,4 +20,4 @@ npm install
 ```shell
 npm run dev
 ```
-说明：默认 Vite 配置在 vite.config.js 中指定 host: '127.0.0.1' 与 port: 5173，所以打开浏览器访问 http://127.0.0.1:5173 （或 http://localhost:5173）即可看到交互页面。
+说明：默认 Vite 配置在 vite.config.js 中指定 host: '127.0.0.1' 与 port: 5173，所以打开浏览器访问 http://127.0.0.1:5173 （或 http://localhost:5173 ）即可看到交互页面。
