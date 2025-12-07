@@ -1,3 +1,12 @@
+/*
+    GameLog.tsx
+
+    说明：
+    - 用于显示来自游戏流的时间序列日志（系统消息、玩家发言、动作、警报等）。
+    - 订阅 `gameState.logs` 并自动滚动到最新项，便于观战者追踪比赛进程。
+    - 日志项应包含 `phase` 与 `timestamp`，便于在 UI 上呈现阶段与时间戳。
+*/
+
 import React, { useEffect, useRef } from 'react';
 import { LogEntry, Phase } from '../types';
 import { Terminal, MessageSquare, Zap, AlertTriangle } from 'lucide-react';
@@ -8,6 +17,7 @@ interface GameLogProps {
 
 const LogItem: React.FC<{ log: LogEntry }> = ({ log }) => {
     const getIcon = () => {
+        // Choose an icon depending on the log type to help users scan messages.
         switch (log.type) {
             case 'speech': return <MessageSquare className="w-4 h-4 text-cyber-accent" />;
             case 'action': return <Zap className="w-4 h-4 text-cyber-warning" />;
@@ -38,6 +48,7 @@ const LogItem: React.FC<{ log: LogEntry }> = ({ log }) => {
                         </span>
                     )}
                     <span className="text-[10px] text-gray-600 font-mono uppercase">
+                        {/* Show the phase and a human-readable time for each log */}
                         {log.phase.replace('_', ' ')} • {new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}
                     </span>
                 </div>

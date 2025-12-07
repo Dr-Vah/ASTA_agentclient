@@ -1,3 +1,12 @@
+/*
+    StatsChart.tsx
+
+    说明：
+    - 可视化当前玩家的估算 GPP（Game Performance Points）或其它实时统计指标。
+    - 当前实现为前端 mock 数据（随机数）用于演示效果；真实数据应来自比赛评分模块或服务端流（例如：每回合计算的 GPP）。
+    - 该组件只负责展示，不参与评分逻辑。
+*/
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Player } from '../types';
@@ -7,9 +16,11 @@ interface StatsChartProps {
 }
 
 const StatsChart: React.FC<StatsChartProps> = ({ players }) => {
-    // Mock GPP data generation based on alive status + random for demo
+    // Build a chart-friendly data array. In production, `gpp` should be
+    // provided by the scoring service; here we synthesize values for demo.
     const data = players.map(p => ({
         name: `P${p.id}`,
+        // Example: alive players show higher (mock) GPP, dead players lower.
         gpp: p.isAlive ? Math.floor(Math.random() * 20) + 10 : Math.floor(Math.random() * 10),
         isHuman: p.isHuman,
         role: p.role
@@ -39,6 +50,7 @@ const StatsChart: React.FC<StatsChartProps> = ({ players }) => {
                         />
                         <Bar dataKey="gpp" radius={[4, 4, 0, 0]}>
                             {data.map((entry, index) => (
+                                // Color cells to emphasize the human player and wolves
                                 <Cell
                                     key={`cell-${index}`}
                                     fill={entry.isHuman ? '#0ea5e9' : entry.role === 'WEREWOLF' ? '#ef4444' : '#64748b'}

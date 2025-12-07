@@ -1,3 +1,14 @@
+/*
+  types.ts
+
+  说明：
+  - 定义前端使用的核心类型（Role, Phase, Player, LogEntry, GameState, AgentDecision）。
+  - 这些类型与比赛后台的 `game_state` / `decision` 协议相对应：
+      * `GameState` 表示当前回合、阶段、玩家列表、日志与剩余时间等信息。
+      * `AgentDecision` 表示智能体或人类在被请求时应提交的决策载体（natural_speech、vote_target 等）。
+  - 在与后端集成时，请确保前后端约定的字段名与含义一致。
+*/
+
 export enum Role {
   WEREWOLF = 'WEREWOLF',
   VILLAGER = 'VILLAGER',
@@ -56,3 +67,18 @@ export interface AgentDecision {
   reasoning_steps: string[];
   suspicion_scores: Record<string, number>;
 }
+
+export interface GameMeta {
+  id: string;
+  title: string;
+  status: 'LIVE' | 'FINISHED';
+  day: number;
+  players: string[]; // List of agent names
+  winner?: 'WEREWOLVES' | 'VILLAGERS';
+  timestamp: number;
+}
+/*
+  注：
+  - `GameState` 是前端与后端交换的主要快照。后端应保证此结构包含当前回合信息与玩家列表。
+  - `AgentDecision` 即为智能体/人类在被请求时提交的响应；比赛计分服务会解析 `reasoning_steps` 与 `suspicion_scores` 来评估策略质量。
+*/

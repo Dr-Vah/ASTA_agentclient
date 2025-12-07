@@ -1,28 +1,69 @@
-import { GameState, Phase, Role, LogEntry, Player, AgentDecision } from '../types';
+/*
+  mockGameEngine.ts
+
+  说明：
+  - 本模块是前端内置的“模拟引擎”，用于本地演示与开发：生成玩家、推进阶段、制造日志、处理人类动作等。
+  - 在真实比赛中，游戏状态由后端（比赛引擎）维护并通过网络推送（或被前端轮询 / websocket 订阅）。
+  - 这里的逻辑简化了夜晚与白天流程，仅用于 UI 演示；关键责任包括：
+      * 维护 `currentState` 并暴露订阅 API (`subscribeToGame`)；
+      * 启动 / 重置游戏循环 (`startGameLoop` / `resetGame`)；
+      * 接收人类操作接口 `sendHumanAction`（当前仅记录日志并打印）。
+*/
+
+import { GameState, Phase, Role, LogEntry, Player, AgentDecision, GameMeta } from '../types';
 
 // Helper to generate initial players
 const generatePlayers = (): Player[] => {
+  // Default role distribution for a 9-player standard game.
   const roles = [
     Role.WEREWOLF, Role.WEREWOLF, Role.WEREWOLF,
     Role.VILLAGER, Role.VILLAGER, Role.VILLAGER,
     Role.SEER, Role.WITCH, Role.HUNTER
   ];
   
-  // Shuffle roles (simple shuffle)
+  // Shuffle roles so each run produces a different assignment.
+  // This is a Fisher–Yates in-place shuffle.
   for (let i = roles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [roles[i], roles[j]] = [roles[j], roles[i]];
   }
 
+  // Create Player objects. Note: for demo we mark player 1 as human.
+  // In a real match the role field would be hidden from clients (unless revealed).
   return Array.from({ length: 9 }, (_, i) => ({
     id: i + 1,
     name: i === 0 ? "You (Human)" : `Agent-${100 + i}`, // ID 1 is human for demo
     isAlive: true,
-    role: roles[i], // In real game, this is hidden unless God mode
+    role: roles[i], // role is present in mock state; real client would not receive this unless authorized
     isHuman: i === 0,
     suspicionScore: 0,
     avatarUrl: `https://picsum.photos/seed/${i + 50}/100/100`
   }));
+};
+
+// >>> NEW FEATURE: Mock Data Generation for Game Lists (Spectator/Replay) <<<
+const generateMockGames = (count: number, status: 'LIVE' | 'FINISHED'): GameMeta[] => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${status === 'LIVE' ? 'live' : 'rep'}-${1000 + i}`,
+    title: status === 'LIVE' ? `Qualifier Group ${String.fromCharCode(65+i)}` : `Finals Match ${2024 - i}`,
+    status: status,
+    day: status === 'LIVE' ? Math.floor(Math.random() * 5) + 1 : Math.floor(Math.random() * 4) + 3,
+    players: Array.from({length: 9}, () => `Agent-${Math.floor(Math.random() * 900) + 100}`),
+    winner: status === 'FINISHED' ? (Math.random() > 0.5 ? 'WEREWOLVES' : 'VILLAGERS') : undefined,
+    timestamp: Date.now() - Math.floor(Math.random() * 10000000)
+  }));
+};
+
+const mockActiveGames = generateMockGames(6, 'LIVE');
+const mockReplays = generateMockGames(8, 'FINISHED');
+
+// >>> NEW FEATURE: API Endpoint to fetch lists <<<
+export const getGameList = (type: 'spectator' | 'replay'): Promise<GameMeta[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(type === 'spectator' ? mockActiveGames : mockReplays);
+    }, 300); // Simulate network delay
+  });
 };
 
 // Initial State
@@ -66,10 +107,18 @@ const addLog = (content: string, type: LogEntry['type'], speakerId?: number) => 
 };
 
 // Simulation Logic
-export const startGameLoop = () => {
-  if (intervalId) return;
+// >>> UPDATE: Added gameId parameter to simulate joining a specific room <<<
+export const startGameLoop = (gameId?: string) => {
+  if (intervalId) clearInterval(intervalId); // Ensure only one loop runs
+  
+  // In a real app, gameId would fetch specific state. 
+  // Here we just restart the mock with new random names
+  if (gameId) {
+     resetGame(false); // Reset but don't clear interval yet as we are about to start
+  }
 
-  addLog("Game Initialized. Day 1 begins.", "system");
+  addLog(`Connected to Game Server...`, "system");
+  addLog(gameId ? `Joined Room: ${gameId}` : "Game Initialized.", "system");
   
   intervalId = setInterval(() => {
     if (currentState.winner) {
@@ -146,7 +195,7 @@ const advancePhase = () => {
     broadcast();
 };
 
-export const resetGame = () => {
+export const resetGame = (isHuman: boolean = false) => {
   clearInterval(intervalId);
   intervalId = null;
   currentState = {

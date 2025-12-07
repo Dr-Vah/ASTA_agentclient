@@ -1,3 +1,14 @@
+/*
+    ActionPanel.tsx
+
+    说明：
+    - 提供人类玩家在“人类挑战”模式下的决策提交界面：发言（natural_speech）与目标选择（vote_target / skill_target）。
+    - 组件接收当前 `gameState`，并根据 `phase` 与玩家存活状态启用/禁用输入控件：
+            * 讨论阶段允许输入发言；投票阶段允许选择目标并提交决策。
+    - onAction 会被调用并传入 `AgentDecision` 对象；当前实现为本地模拟（mock）发送。
+    - 注意：真实竞赛应将 `AgentDecision` POST 到后端 AI 服务并由后端进行验证/计分。
+*/
+
 import React, { useState } from 'react';
 import { AgentDecision, GameState, Phase } from '../types';
 import { Send, Target, Microscope } from 'lucide-react';
@@ -12,7 +23,14 @@ const ActionPanel: React.FC<ActionPanelProps> = ({ gameState, onAction }) => {
     const [target, setTarget] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Determine whether the local player may act. `isTurn` here is simplified:
+    // it checks whether the player represented by `selfId` is alive. In a real
+    // game you might also check turn order, timers, and role-specific permissions.
     const isTurn = gameState.players.find(p => p.id === gameState.selfId)?.isAlive;
+
+    // Control which inputs are active depending on current phase.
+    // - Discussion phases allow speech input.
+    // - Vote phase enables target selection.
     const canSpeak = gameState.phase === Phase.DAY_DISCUSS || gameState.phase === Phase.DAY_ANNOUNCE;
     const canVote = gameState.phase === Phase.DAY_VOTE;
     // In a real implementation, we would check roles for Night phases
@@ -23,6 +41,11 @@ const ActionPanel: React.FC<ActionPanelProps> = ({ gameState, onAction }) => {
 
         // Mock "Think" delay
         setTimeout(() => {
+            // Build the AgentDecision object to follow the competition contract.
+            // - `natural_speech`: human readable string for comment / narration.
+            // - `vote_target`: numeric player id (if selected).
+            // - `reasoning_steps`: an array of strings capturing the decision chain (useful for scoring/debugging).
+            // - `suspicion_scores`: optional per-player scores produced by AI; here left empty.
             onAction({
                 natural_speech: speech,
                 vote_target: target ? parseInt(target) : undefined,
@@ -35,6 +58,7 @@ const ActionPanel: React.FC<ActionPanelProps> = ({ gameState, onAction }) => {
         }, 500);
     };
 
+    // If the player is not alive or not allowed to act, show a spectator message.
     if (!isTurn) {
         return (
             <div className="glass-panel p-6 rounded-xl text-center h-full flex items-center justify-center">
@@ -86,7 +110,7 @@ const ActionPanel: React.FC<ActionPanelProps> = ({ gameState, onAction }) => {
                 onClick={handleSubmit}
                 disabled={isSubmitting || (!canSpeak && !canVote)}
                 className={`
-            mt-4 w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all
+            mt-4 w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all shrink-0
             ${isSubmitting || (!canSpeak && !canVote)
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-cyber-accent text-cyber-900 hover:bg-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.3)]'
